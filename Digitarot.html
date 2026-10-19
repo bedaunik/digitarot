@@ -1,0 +1,477 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Digitarot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&family=Figtree:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: one column app, max 720px. Controls on top, spread of cards below, short readings under the spread. Night-sky look, same as the tarot guide. */
+:root{
+  --ink:#12102B; --ink-2:#1F1745; --panel:#1E1A44; --panel-2:#2E2670;
+  --gold:#E8C170; --cream:#F4F1EA; --muted:#B9B3D6; --teal:#6FD3C2; --line:rgba(232,193,112,.4);
+  --display:'Cormorant Garamond', Georgia, serif; --body:'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  margin:0; background:var(--ink); color:var(--cream); font-family:var(--body); font-size:16px; line-height:1.5;
+  background-image:linear-gradient(180deg,var(--ink) 0%,var(--ink-2) 55%,#2E2062 100%); background-attachment:fixed;
+  padding-block:20px 56px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap{max-width:720px; margin:0 auto; display:flex; flex-direction:column; gap:20px}
+header{text-align:center; padding-top:8px}
+.eyebrow{letter-spacing:.3em; font-size:12px; font-weight:600; color:var(--gold); text-transform:uppercase}
+h1{margin:6px 0 0; font-family:var(--display); font-weight:700; font-size:clamp(44px,13vw,64px); line-height:1; text-wrap:balance}
+h1 em{font-weight:500; color:var(--gold)}
+.tagline{margin:6px 0 0; font-family:var(--display); font-style:italic; font-weight:500; font-size:clamp(20px,5.5vw,26px); color:var(--gold)}
+.lead{margin:10px auto 0; max-width:34ch; color:var(--muted); font-size:15px}
+
+.panel{background:var(--panel); border:1px solid var(--line); border-radius:24px; padding:18px; display:flex; flex-direction:column; gap:16px}
+.row{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap}
+.label{font-weight:600; font-size:15px}
+.sub{color:var(--muted); font-size:13px}
+.stepper{display:flex; align-items:center; gap:6px}
+.stepper button{width:46px; height:46px; border-radius:50%; border:2px solid var(--gold); background:transparent; color:var(--gold); font-size:24px; font-weight:600; cursor:pointer; line-height:1}
+.stepper button:disabled{opacity:.35; cursor:default}
+.stepper output{min-width:56px; text-align:center; font-family:var(--display); font-weight:700; font-size:44px; line-height:1}
+.chips{display:flex; gap:8px; flex-wrap:wrap}
+.chip{min-width:44px; height:40px; padding:0 14px; border-radius:999px; border:1px solid var(--line); background:transparent; color:var(--cream); font:600 15px var(--body); cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--gold); color:var(--ink); border-color:var(--gold)}
+.switch{display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; background:none; border:0; padding:4px 0; color:var(--cream); font:inherit; cursor:pointer; text-align:left; min-height:44px}
+.switch .track{flex:none; width:52px; height:30px; border-radius:999px; background:#3A3470; position:relative; transition:background .2s}
+.switch .track::after{content:""; position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%; background:var(--cream); transition:transform .2s}
+.switch[aria-checked="true"] .track{background:var(--gold)}
+.switch[aria-checked="true"] .track::after{transform:translateX(22px); background:var(--ink)}
+.btn{border:0; border-radius:999px; padding:16px 28px; font:600 18px var(--body); cursor:pointer; min-height:54px}
+.btn.primary{background:var(--gold); color:var(--ink); width:100%}
+.btn.ghost{background:transparent; color:var(--gold); border:2px solid var(--gold); padding:12px 22px; font-size:16px; min-height:48px}
+.btn:disabled{opacity:.6; cursor:default}
+button:focus-visible{outline:3px solid var(--cream); outline-offset:3px}
+
+.stage{display:flex; flex-direction:column; gap:14px}
+.spread{display:grid; grid-template-columns:repeat(auto-fit,minmax(92px,1fr)); gap:20px 12px}
+.slot{display:flex; flex-direction:column; align-items:center; gap:8px; min-width:0; width:100%; max-width:168px; justify-self:center}
+.slot .pos{font-weight:600; font-size:14px; color:var(--gold); text-align:center; min-height:20px}
+.slot .state{font-size:12px; letter-spacing:.14em; text-transform:uppercase; font-weight:600; color:var(--muted); min-height:18px; text-align:center}
+.slot .state.rev{color:var(--teal)} .slot .state.up{color:var(--gold)}
+.card{width:100%; padding:0; border:0; background:none; cursor:pointer; container-type:inline-size; perspective:900px; display:block}
+.inner{position:relative; width:100%; aspect-ratio:2/3; transform-style:preserve-3d; transition:transform .6s cubic-bezier(.3,.7,.2,1)}
+.card.flipped .inner{transform:rotateY(180deg)}
+.back,.face{position:absolute; inset:0; border-radius:10cqw; border:1.8cqw solid var(--gold); backface-visibility:hidden; -webkit-backface-visibility:hidden; overflow:hidden; display:flex; align-items:center; justify-content:center}
+.back{background:#1A1738}
+.back::before,.face::before{content:""; position:absolute; inset:4.5cqw; border:.5cqw solid rgba(232,193,112,.4); border-radius:6.5cqw}
+.back svg{width:56cqw; height:56cqw}
+.face{background:#221D4B; transform:rotateY(180deg)}
+.face .content{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:7cqw 7cqw 6.5cqw; gap:1cqw}
+.face .num{font-family:var(--display); font-weight:700; font-size:12cqw; line-height:1; color:var(--gold)}
+.face.rev .num{color:var(--teal)}
+.face.rev .art svg{transform:rotate(180deg)}
+.face .art{flex:1; min-height:0; width:100%; display:flex; align-items:center; justify-content:center}
+.face .art svg{width:100%; height:100%; display:block}
+.face .name{font-family:var(--display); font-weight:700; font-size:9.6cqw; line-height:1.05; text-align:center; text-wrap:balance}
+.zoom{position:fixed; inset:0; z-index:10; background:rgba(10,8,30,.97); display:flex; align-items:center; justify-content:center; padding:max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); overflow-y:auto}
+.zoom[hidden]{display:none!important}
+.zbox{width:min(340px,100%); display:flex; flex-direction:column; align-items:center; gap:14px; margin:auto}
+.zoomcard{width:min(260px,66vw); container-type:inline-size}
+.zoomcard .face{position:relative; transform:none; width:100%; aspect-ratio:2/3; backface-visibility:visible; -webkit-backface-visibility:visible}
+.ztext{text-align:center; display:flex; flex-direction:column; gap:6px; align-items:center}
+.ztext .nm{font-family:var(--display); font-weight:700; font-size:28px; line-height:1.1}
+.ztext p{margin:0; font-size:15px}
+.deal{animation:deal .45s both cubic-bezier(.3,.7,.2,1)}
+@keyframes deal{from{opacity:0; transform:translateY(18px) scale(.92)} to{opacity:1; transform:none}}
+.sum{margin:14px 0 0; padding:14px; border:1px solid var(--gold); border-radius:16px; background:var(--ink)}
+.sum h3{margin:0 0 6px; font-family:var(--display); font-size:22px; color:var(--gold)}
+.sum p{margin:0; font-size:16px}
+.tip{margin:14px 0 0; padding-top:12px; border-top:1px solid var(--line); color:var(--gold); font-size:15px}
+.tools{display:flex; gap:10px; flex-wrap:wrap; justify-content:center}
+
+.reading h2{margin:0; font-family:var(--display); font-size:30px; line-height:1.1}
+.reading ol{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:12px}
+.reading li{border-top:1px solid var(--line); padding-top:12px; display:flex; flex-direction:column; gap:4px}
+.reading .top{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
+.reading .pos{font-size:12px; letter-spacing:.14em; text-transform:uppercase; font-weight:600; color:var(--muted)}
+.reading .nm{font-family:var(--display); font-weight:700; font-size:26px; line-height:1.1}
+.badge{font-size:12px; font-weight:600; border-radius:999px; padding:2px 10px; border:1px solid var(--gold); color:var(--gold)}
+.badge.rev{border-color:var(--teal); color:var(--teal)}
+.reading p{margin:0; font-size:15px}
+.reading .hint{color:var(--teal)}
+.empty{color:var(--muted); font-size:15px; margin:0}
+.copybox{width:100%; min-height:110px; border-radius:16px; border:1px solid var(--line); background:var(--ink); color:var(--cream); font:14px/1.5 var(--body); padding:12px}
+.toast{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(20px + env(safe-area-inset-bottom, 0px)); background:var(--gold); color:var(--ink); font-weight:600; border-radius:999px; padding:10px 20px; z-index:5; box-shadow:0 6px 24px rgba(0,0,0,.4)}
+footer{text-align:center; color:var(--muted); font-size:13px}
+
+.shuffle{grid-column:1/-1; position:relative; height:230px; display:flex; align-items:center; justify-content:center; overflow:hidden}
+.sc{position:absolute; width:104px; aspect-ratio:2/3; border-radius:12px; border:2px solid var(--gold); background:#1A1738; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,.45); animation:riffle 1s ease-in-out infinite; animation-delay:var(--d); will-change:transform}
+.sc::before{content:""; position:absolute; inset:6px; border:1px solid rgba(232,193,112,.4); border-radius:8px}
+.sc svg{width:52px; height:52px; color:var(--gold)}
+.shuffle-msg{position:absolute; bottom:4px; left:0; right:0; text-align:center; font-weight:600; font-size:15px; color:var(--gold); letter-spacing:.04em}
+.shuffle-msg i{font-style:normal; animation:blink 1s steps(3,end) infinite}
+@keyframes riffle{
+  0%{transform:translateX(0) rotate(0)}
+  22%{transform:translateX(calc(var(--s)*86px)) rotate(calc(var(--s)*14deg)) translateY(-8px)}
+  50%{transform:translateX(0) rotate(0) translateY(0)}
+  72%{transform:translateX(calc(var(--s)*-60px)) rotate(calc(var(--s)*-10deg)) translateY(-14px)}
+  100%{transform:translateX(0) rotate(0)}
+}
+@keyframes blink{0%{opacity:.2}100%{opacity:1}}
+@media (prefers-reduced-motion: reduce){.sc{animation-duration:2.4s}.inner{transition:none}.deal{animation:none}.switch .track,.switch .track::after{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Digitarot</h1>
+    <p class="tagline">Tarot Dimana Saja</p>
+  </header>
+
+  <section class="panel" aria-label="Pengaturan">
+    <div class="row">
+      <div>
+        <div class="label" id="countLabel">Jumlah kartu</div>
+        <div class="sub">1 sampai 12 kartu</div>
+      </div>
+      <div class="stepper" role="group" aria-labelledby="countLabel">
+        <button id="minus" type="button" aria-label="Kurangi satu kartu">−</button>
+        <output id="count" aria-live="polite">3</output>
+        <button id="plus" type="button" aria-label="Tambah satu kartu">+</button>
+      </div>
+    </div>
+    <div class="chips" id="chips" role="group" aria-label="Pilihan cepat"></div>
+    <button class="switch" id="swRev" type="button" role="switch" aria-checked="true">
+      <span><span class="label">Kartu terbalik</span><br><span class="sub">Tiap kartu bisa tegak atau terbalik, peluangnya sama</span></span>
+      <span class="track" aria-hidden="true"></span>
+    </button>
+    <button class="switch" id="swPos" type="button" role="switch" aria-checked="true">
+      <span><span class="label">Label posisi</span><br><span class="sub">3 kartu: Situasi, Tantangan, Saran</span></span>
+      <span class="track" aria-hidden="true"></span>
+    </button>
+    <button class="btn primary" id="draw" type="button">Acak dan tarik 3 kartu</button>
+  </section>
+
+  <section class="stage" aria-label="Hasil tarikan">
+    <div class="spread" id="spread"></div>
+    <div class="tools">
+      <button class="btn ghost" id="openAll" type="button">Buka semua</button>
+      <button class="btn ghost" id="copy" type="button">Salin hasil</button>
+    </div>
+    <div id="copyWrap" hidden>
+      <p class="sub" style="margin:0 0 6px">Salin manual dari kotak ini:</p>
+      <textarea class="copybox" id="copyBox" readonly></textarea>
+    </div>
+  </section>
+
+  <section class="panel reading" aria-label="Bacaan singkat">
+    <h2>Bacaan singkat</h2>
+    <div id="reading" aria-live="polite"></div>
+  </section>
+
+  <footer>Bedaunik App</footer>
+</div>
+<div class="zoom" id="zoom" hidden role="dialog" aria-modal="true" aria-label="Kartu diperbesar"><div class="zbox"><div id="zbody" style="display:flex; flex-direction:column; align-items:center; gap:14px; width:100%"></div><button class="btn ghost" id="zclose" type="button">Tutup</button></div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+  var ROMAN=['0','I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI'];
+  var MAJOR=[
+    ['The Fool','awal baru, berani melangkah, spontan'],
+    ['The Magician','kemampuan dan niat yang jadi tindakan'],
+    ['The High Priestess','intuisi, hal yang belum terlihat'],
+    ['The Empress','kelimpahan, merawat, kreativitas'],
+    ['The Emperor','struktur, aturan, stabilitas'],
+    ['The Hierophant','tradisi, bimbingan, nilai bersama'],
+    ['The Lovers','pilihan, hubungan, keselarasan nilai'],
+    ['The Chariot','tekad, kemajuan, kendali diri'],
+    ['Strength','keberanian lembut, kesabaran'],
+    ['The Hermit','merenung, mencari makna'],
+    ['Wheel of Fortune','siklus, perubahan, titik balik'],
+    ['Justice','keadilan, tanggung jawab, kebenaran'],
+    ['The Hanged Man','jeda, sudut pandang baru, melepas'],
+    ['Death','akhir satu fase, transformasi'],
+    ['Temperance','keseimbangan, moderasi, memadukan'],
+    ['The Devil','keterikatan, kebiasaan yang mengikat'],
+    ['The Tower','guncangan, kebenaran yang terungkap'],
+    ['The Star','harapan, pemulihan, ketenangan'],
+    ['The Moon','ilusi, kecemasan, bawah sadar'],
+    ['The Sun','kejelasan, sukacita, vitalitas'],
+    ['Judgement','evaluasi, panggilan untuk bangkit'],
+    ['The World','penyelesaian, keutuhan, pencapaian']
+  ];
+  var MAJOR_REV=['gegabah, ragu','manipulasi, bakat terbuang','mengabaikan firasat','terlalu bergantung, mandek','kaku, mengontrol','menentang aturan, dogma','tidak selaras, pilihan sulit','kehilangan arah','ragu pada diri sendiri','mengisolasi diri','hambatan, kembali ke pola lama','tidak adil, mengelak tanggung jawab','menunda tanpa alasan','menolak perubahan','berlebihan, tidak seimbang','melepaskan diri','takut perubahan, tertunda','putus asa, kehilangan arah','kebingungan mulai terang','optimisme berlebihan','menghindari introspeksi','belum tuntas'];
+  var RANKS=[
+    ['Ace','A','awal, benih, peluang'],['Two','2','pilihan, keseimbangan, kemitraan'],['Three','3','pertumbuhan, kerja sama'],
+    ['Four','4','stabilitas, jeda, bertahan'],['Five','5','konflik, kehilangan, tantangan'],['Six','6','harmoni, pemulihan, berbagi'],
+    ['Seven','7','evaluasi, ujian, kesabaran'],['Eight','8','gerak, usaha, penguasaan'],['Nine','9','hampir selesai, ketahanan'],
+    ['Ten','10','penyelesaian, puncak, beban'],['Page','Pg','pelajar, membawa kabar baru'],['Knight','Kn','bergerak, mengejar tujuan'],
+    ['Queen','Qn','matang ke dalam, merawat, memahami'],['King','Kg','matang ke luar, memimpin, memutuskan']
+  ];
+  var SUITS=[
+    ['Cups','perasaan dan hubungan','<svg viewBox="0 0 80 80" aria-hidden="true"><path d="M16 18H64L56 44H24Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M40 44V62M28 64H52" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>'],
+    ['Pentacles','uang dan pekerjaan','<svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="26" fill="none" stroke="currentColor" stroke-width="4"/><circle cx="40" cy="40" r="13" fill="none" stroke="currentColor" stroke-width="4"/></svg>'],
+    ['Swords','pikiran dan konflik','<svg viewBox="0 0 80 80" aria-hidden="true"><path d="M40 12V60M26 44H54M40 60V70" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><polygon points="34,20 40,6 46,20" fill="currentColor"/></svg>'],
+    ['Wands','semangat dan tindakan','<svg viewBox="0 0 80 80" aria-hidden="true"><path d="M40 20V72" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/><polygon points="40,4 30,22 50,22" fill="currentColor"/></svg>']
+  ];
+  var STAR='<svg viewBox="0 0 100 100" aria-hidden="true"><polygon points="50,10 56.1,35.2 78.3,21.7 64.8,43.9 90,50 64.8,56.1 78.3,78.3 56.1,64.8 50,90 43.9,64.8 21.7,78.3 35.2,56.1 10,50 35.2,43.9 21.7,21.7 43.9,35.2" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><circle cx="50" cy="50" r="6" fill="currentColor"/></svg>';
+
+  var DECK=[], i, s, r;
+  for(i=0;i<22;i++) DECK.push({major:i, name:MAJOR[i][0], num:ROMAN[i], meaning:MAJOR[i][1], kind:'Major Arcana', rev:MAJOR_REV[i], kw:MAJOR[i][1].split(',')[0], rkw:MAJOR_REV[i].split(',')[0]});
+  for(s=0;s<4;s++) for(r=0;r<14;r++){
+    DECK.push({suit:s, rank:r, name:RANKS[r][0]+' of '+SUITS[s][0], num:RANKS[r][1], meaning:RANKS[r][2]+', di bidang '+SUITS[s][1], kind:'Minor Arcana, '+SUITS[s][0], kw:RANKS[r][2].split(',')[0], area:SUITS[s][1], suit:s, rank:r});
+  }
+
+  /* ---------- Line art: viewBox 0 0 120 150, stroke = currentColor ---------- */
+  var PI=Math.PI, FILL=' fill="currentColor" stroke="none"';
+  function C(x,y,r,e){return '<circle cx="'+x+'" cy="'+y+'" r="'+r+'"'+(e||'')+'/>';}
+  function E(x,y,rx,ry,e){return '<ellipse cx="'+x+'" cy="'+y+'" rx="'+rx+'" ry="'+ry+'"'+(e||'')+'/>';}
+  function P(d,e){return '<path d="'+d+'"'+(e||'')+'/>';}
+  function Ln(x1,y1,x2,y2){return '<path d="M'+x1+' '+y1+'L'+x2+' '+y2+'"/>';}
+  function Rc(x,y,w,h,r){return '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="'+(r||0)+'"/>';}
+  function dot(x,y,r){return C(x,y,r||1.3,FILL);}
+  function rays(cx,cy,r1,r2,n,rot){var s='',i,a;for(i=0;i<n;i++){a=(rot||0)+i*2*PI/n;s+=Ln((cx+r1*Math.cos(a)).toFixed(1),(cy+r1*Math.sin(a)).toFixed(1),(cx+r2*Math.cos(a)).toFixed(1),(cy+r2*Math.sin(a)).toFixed(1));}return s;}
+  function star(cx,cy,r,n,ratio,rot){var pts=[],i,a,rad;rot=(rot===undefined)?-PI/2:rot;for(i=0;i<2*n;i++){a=rot+i*PI/n;rad=i%2===0?r:r*ratio;pts.push((cx+rad*Math.cos(a)).toFixed(1)+','+(cy+rad*Math.sin(a)).toFixed(1));}return '<polygon points="'+pts.join(' ')+'"/>';}
+  function sun(cx,cy,r,n){return C(cx,cy,r)+rays(cx,cy,r+3,r+8,n||10);}
+  function moon(cx,cy,r){return P('M'+cx+' '+(cy-r)+'A'+r+' '+r+' 0 0 0 '+cx+' '+(cy+r)+'A'+(r*1.4)+' '+(r*1.4)+' 0 0 1 '+cx+' '+(cy-r)+'Z');}
+  function mount(pts){return P(pts);}
+  function waves(y,x0,x1,amp){var d='M'+x0+' '+y+'q5 -'+amp+' 10 0',x=x0+10;while(x<x1){d+='t10 0';x+=10;}return P(d);}
+  function cloud(x,y,s){s=s||1;return P('M'+x+' '+y+'q'+(4*s)+' '+(-8*s)+' '+(12*s)+' '+(-3*s)+'q'+(5*s)+' '+(-8*s)+' '+(13*s)+' '+(2*s)+'q'+(8*s)+' '+(-1*s)+' '+(7*s)+' '+(8*s)+'Z');}
+  function hands(x,y){return '';}
+  function wing(x,y,dir,s){s=s||1;var d=dir;return P('M'+x+' '+y+'q'+(d*14*s)+' '+(-18*s)+' '+(d*26*s)+' '+(-6*s)+'q'+(d*-4*s)+' '+(8*s)+' '+(d*-10*s)+' '+(10*s)+'q'+(d*-2*s)+' '+(6*s)+' '+(d*-8*s)+' '+(8*s)+'q'+(d*-2*s)+' '+(6*s)+' '+(d*-8*s)+' '+(8*s));}
+  function figure(cx,top,hr,botY,botW){return C(cx,top+hr,hr)+P('M'+cx+' '+(top+2*hr)+'L'+(cx-botW/2)+' '+botY+'H'+(cx+botW/2)+'Z');}
+  function crown(cx,y,w){var h=w*0.55;return P('M'+(cx-w/2)+' '+y+'L'+(cx-w/2)+' '+(y-h)+'L'+(cx-w/4)+' '+(y-h/2)+'L'+cx+' '+(y-h*1.2)+'L'+(cx+w/4)+' '+(y-h/2)+'L'+(cx+w/2)+' '+(y-h)+'L'+(cx+w/2)+' '+y+'Z');}
+  function lemni(cx,cy,w){var a=w/2;return P('M'+cx+' '+cy+'C'+(cx+a*0.4)+' '+(cy-9)+' '+(cx+a)+' '+(cy-9)+' '+(cx+a)+' '+cy+'C'+(cx+a)+' '+(cy+9)+' '+(cx+a*0.4)+' '+(cy+9)+' '+cx+' '+cy+'C'+(cx-a*0.4)+' '+(cy-9)+' '+(cx-a)+' '+(cy-9)+' '+(cx-a)+' '+cy+'C'+(cx-a)+' '+(cy+9)+' '+(cx-a*0.4)+' '+(cy+9)+' '+cx+' '+cy+'Z');}
+  function pillar(x,y,h){return Rc(x,y,12,h)+Ln(x-2,y,x+14,y)+Ln(x-2,y+h,x+14,y+h)+Ln(x+4,y+4,x+4,y+h-4)+Ln(x+8,y+4,x+8,y+h-4);}
+  function figHead(x,y,r){return C(x,y,r);}
+
+  var SYM={
+    cup:function(){return P('M-12 -14H12C12 0 6 6 0 6C-6 6 -12 0 -12 -14Z')+Ln(0,6,0,15)+P('M-8 18H8M-5 15H5');},
+    pent:function(){return C(0,0,14)+star(0,0,10.5,5,0.382,-PI/2);},
+    sword:function(){return P('M0 -20L3.2 -12V8H-3.2V-12Z')+Ln(-10,8,10,8)+Ln(0,8,0,17)+C(0,19,1.8);},
+    wand:function(){return Ln(0,-19,0,19)+P('M0 -8Q-9 -10 -10 -17M0 -1Q9 -3 10 -10M0 7Q-9 5 -10 -2');}
+  };
+  var SUITKEY=['cup','pent','sword','wand'];
+  function emb(s,x,y,k){return '<g transform="translate('+x+' '+y+') scale('+k+')">'+SYM[SUITKEY[s]]()+'</g>';}
+
+  function bg(s){
+    if(s===0) return waves(132,0,120,3)+waves(142,0,120,3);
+    if(s===1) return P('M0 132Q30 116 60 130T120 126')+P('M0 144Q30 130 60 142T120 140')+Ln(14,124,14,132)+Ln(104,120,104,128);
+    if(s===2) return cloud(6,126,1)+cloud(78,134,1.1)+Ln(40,142,70,142);
+    return P('M70 138L88 110L106 138')+P('M96 138L108 120L120 138')+Ln(0,140,120,140);
+  }
+
+  var MAJOR_ART=[
+    /* 0 Fool */ function(){return sun(96,26,8,10)+mount('M66 128 L84 104 L94 116 L104 100 L120 126')+P('M0 114H68L74 126L66 150')+C(44,50,7)+P('M36 47Q44 36 53 46')+Ln(50,41,57,35)+P('M44 57L33 98H55Z')+Ln(50,64,70,50)+C(73,47,6)+Ln(38,98,36,114)+Ln(50,98,54,114)+E(21,104,8,4)+C(30,99,3.4)+Ln(16,108,15,114)+Ln(26,108,26,114)+P('M13 102Q8 98 10 94')+C(28,74,3)+Ln(28,77,30,86);},
+    /* 1 Magician */ function(){return lemni(60,20,34)+C(60,40,7)+P('M60 47L46 98H74Z')+Ln(66,60,86,38)+C(88,36,2)+Ln(54,62,40,88)+Rc(18,104,84,6)+Ln(26,110,26,138)+Ln(94,110,94,138)+C(34,100,3)+C(52,100,3.4)+Ln(70,95,70,104)+Ln(84,92,84,104)+Ln(0,144,120,144)+C(10,132,2)+C(22,138,2)+C(100,134,2)+C(112,140,2);},
+    /* 2 High Priestess */ function(){return pillar(10,24,106)+pillar(98,24,106)+P('M28 34Q44 44 60 34T92 34')+P('M28 50Q44 60 60 50T92 50')+moon(60,26,7)+C(60,48,7)+P('M60 55L42 120H78Z')+Rc(54,92,12,10)+Ln(54,97,66,97)+moon(60,128,7)+Ln(18,60,18,110)+Ln(102,60,102,110);},
+    /* 3 Empress */ function(){return star(42,20,3,5,0.45)+star(52,13,3,5,0.45)+star(60,10,3,5,0.45)+star(68,13,3,5,0.45)+star(78,20,3,5,0.45)+C(60,38,7)+P('M60 45L40 106H80Z')+P('M30 106H90V120H30Z')+Ln(40,106,40,120)+C(82,70,4)+Ln(82,74,82,82)+Ln(79,78,85,78)+Ln(14,70,14,130)+Ln(22,64,22,130)+P('M14 90Q8 86 8 80M14 100Q20 96 20 90M22 84Q16 80 16 74M22 96Q28 92 28 86')+P('M92 120Q100 100 104 130')+waves(132,92,120,3);},
+    /* 4 Emperor */ function(){return mount('M0 130 L24 102 L40 118 L66 92 L92 120 L120 102')+P('M34 110V24H86V110')+P('M34 24Q34 14 44 14H76Q86 14 86 24')+crown(60,28,18)+C(60,36,7)+P('M55 42Q60 56 65 42')+P('M60 46L42 108H78Z')+C(40,70,5)+Ln(40,63,40,60)+Ln(80,52,80,106)+C(80,48,3.6)+Ln(75,60,85,60)+Ln(32,116,88,116)+P('M30 22Q20 22 22 32M90 22Q100 22 98 32');},
+    /* 5 Hierophant */ function(){return pillar(8,24,100)+pillar(100,24,100)+Ln(60,28,60,28)+P('M52 26L60 12L68 26Z')+C(60,34,7)+P('M60 41L44 104H76Z')+Ln(86,28,86,118)+Ln(80,34,92,34)+Ln(81,42,91,42)+Ln(82,50,90,50)+Ln(66,58,86,50)+Ln(54,60,42,84)+C(28,120,5)+P('M28 125L22 140H34Z')+C(92,126,5)+P('M92 131L86 146H98Z')+P('M50 118L58 130M58 118L50 130')+Ln(14,108,106,108);},
+    /* 6 Lovers */ function(){return sun(60,20,7,12)+wing(60,36,-1,0.9)+wing(60,36,1,0.9)+C(60,40,6)+P('M60 46L52 66H68Z')+mount('M38 126 L60 62 L82 126')+C(30,70,6)+P('M30 76L20 126H40Z')+C(90,70,6)+P('M90 76L80 126H100Z')+C(14,92,6)+Ln(14,98,14,126)+C(8,86,1.5,FILL)+C(19,88,1.5,FILL)+Ln(106,92,106,126)+P('M106 92Q100 84 106 78Q112 84 106 92')+Ln(0,130,120,130);},
+    /* 7 Chariot */ function(){return P('M26 34Q60 12 94 34')+Ln(26,34,26,56)+Ln(94,34,94,56)+star(40,28,2.6,5,0.45)+star(60,22,2.6,5,0.45)+star(80,28,2.6,5,0.45)+C(60,50,7)+crown(60,45,12)+P('M60 57L50 74H70Z')+Rc(28,74,64,38,4)+C(60,92,8)+star(60,92,6,4,0.4)+C(40,118,9)+C(80,118,9)+rays(40,118,0,9,6)+rays(80,118,0,9,6)+E(18,130,12,7)+C(30,122,5)+E(102,130,12,7)+C(90,122,5)+Ln(0,138,120,138);},
+    /* 8 Strength */ function(){return lemni(60,18,30)+C(60,36,7)+dot(53,28,1.2)+dot(60,26,1.2)+dot(67,28,1.2)+P('M60 43L44 108H76Z')+Ln(52,60,40,88)+E(66,116,26,12)+C(40,108,11)+C(36,106,1,FILL)+Ln(32,112,40,114)+P('M92 112Q104 108 104 98')+Ln(48,128,48,140)+Ln(80,128,80,140)+mount('M0 100 L20 76 L40 100');},
+    /* 9 Hermit */ function(){return mount('M0 128 L24 94 L48 128')+mount('M58 128 L88 80 L120 128')+P('M82 90L88 80L94 90')+C(58,36,7)+P('M50 36Q50 26 58 26Q66 26 66 36')+P('M58 43L38 126H78Z')+Ln(58,60,58,126)+Ln(72,62,84,66)+Ln(84,66,84,72)+Rc(78,72,12,14,2)+star(84,79,3.4,6,0.5)+Ln(84,72,84,68)+Ln(36,46,36,130)+C(36,44,2)+P('M50 70L40 90');},
+    /* 10 Wheel */ function(){return C(60,76,32)+C(60,76,24)+C(60,76,6)+rays(60,76,6,24,8,PI/8)+rays(60,76,24,32,8,0)+cloud(8,30,1)+cloud(84,22,1)+C(14,14,5)+C(106,14,5)+C(14,138,5)+C(106,138,5)+P('M6 14q-4 -6 0 -10M22 14q4 -6 0 -10')+P('M98 14q-4 -6 0 -10M114 14q4 -6 0 -10')+Ln(60,40,60,28)+P('M54 28Q60 18 66 28Z')+P('M22 118Q14 108 22 100')+P('M98 118Q106 108 98 100');},
+    /* 11 Justice */ function(){return pillar(6,24,106)+pillar(102,24,106)+P('M18 40Q60 54 102 40')+crown(60,30,16)+C(60,38,7)+P('M60 45L44 118H76Z')+Ln(84,16,84,96)+Ln(77,86,91,86)+C(84,98,2)+Ln(38,60,38,86)+Ln(24,62,52,62)+P('M20 62Q24 76 28 62')+P('M48 62Q52 76 56 62')+Ln(54,66,46,84)+Ln(22,118,98,118);},
+    /* 12 Hanged Man */ function(){return Ln(18,24,102,24)+Ln(22,24,22,134)+Ln(98,24,98,134)+P('M22 40Q30 36 34 44M98 40Q90 36 86 44M22 70Q30 66 34 74M98 70Q90 66 86 74')+Ln(60,24,60,46)+P('M60 46L54 56L66 66L60 54')+Ln(60,56,60,92)+C(60,100,8)+rays(60,100,11,16,10)+P('M60 62L50 84L70 84Z')+Ln(56,64,48,80)+Ln(64,64,72,80);},
+    /* 13 Death */ function(){return mount('M0 128 L120 128')+C(96,128,12)+rays(96,128,14,20,9,-PI)+Ln(10,128,10,100)+Ln(22,128,22,100)+P('M6 100H26')+Ln(86,20,86,106)+P('M86 20H112V42H86')+C(99,31,4)+E(52,100,26,13)+P('M72 92Q86 78 84 66L98 70Q98 88 84 104')+Ln(34,110,32,134)+Ln(46,112,46,134)+Ln(64,112,66,134)+Ln(76,108,82,132)+P('M28 94Q16 100 20 118')+C(52,60,5)+Ln(52,65,52,86)+Ln(46,70,58,70)+Ln(46,76,58,76)+Ln(58,66,84,56)+P('M10 140H40M70 142H100');},
+    /* 14 Temperance */ function(){return wing(60,52,-1,1)+wing(60,52,1,1)+C(60,36,8)+C(60,36,11)+dot(60,36,1.5)+C(60,52,7)+P('M60 59L44 112H76Z')+Ln(50,70,34,86)+Rc(26,84,14,12,2)+Ln(70,70,86,90)+Rc(80,90,14,12,2)+P('M34 96Q56 108 84 102')+waves(122,0,60,3)+P('M60 112L60 130')+P('M60 124Q50 118 60 112Q70 118 60 124')+mount('M70 140 L94 112 L120 140')+star(94,106,3,5,0.45)+Ln(14,110,14,126)+Ln(104,134,104,146);},
+    /* 15 Devil */ function(){return C(60,32,10)+P('M52 26Q42 20 44 10M68 26Q78 20 76 10')+star(60,28,4,5,0.4,PI/2)+C(60,44,0.01)+wing(52,58,-1,0.8)+wing(68,58,1,0.8)+P('M60 44L46 80H74Z')+Ln(76,60,88,52)+P('M88 52L92 44L84 44Z')+Rc(34,84,52,24)+Ln(34,96,86,96)+C(60,102,3)+C(30,124,5)+P('M30 129L24 144H36Z')+C(90,124,5)+P('M90 129L84 144H96Z')+P('M60 105Q48 114 36 120M60 105Q72 114 84 120');},
+    /* 16 Tower */ function(){return Rc(40,44,40,82)+P('M34 44H86V54H34Z')+P('M38 44V36H46V44M50 44V36H58V44M62 44V36H70V44M74 44V36H82V44')+Rc(52,64,14,20,6)+Rc(52,94,14,20,6)+P('M106 6L84 30L94 32L66 52')+P('M62 48L66 52L60 56')+P('M30 126L40 126M80 126L96 126')+mount('M0 138 L22 118 L44 138 L70 118 L96 138 L120 124')+C(22,62,4)+P('M22 66L18 78L26 76M22 70L14 66')+C(98,84,4)+P('M98 88L102 100L94 98M98 92L106 88')+dot(18,30,2)+dot(100,52,2)+dot(24,92,1.6)+P('M46 24L52 14L58 24Z');},
+    /* 17 Star */ function(){return star(60,28,16,8,0.4)+star(26,22,4,5,0.45)+star(96,24,4,5,0.45)+star(20,54,4,5,0.45)+star(100,56,4,5,0.45)+star(30,76,3.4,5,0.45)+star(92,78,3.4,5,0.45)+C(58,76,6)+P('M58 82L46 112L68 112Z')+Ln(54,84,36,98)+Rc(28,96,12,12,2)+Ln(34,108,34,116)+Ln(64,86,80,100)+Rc(76,98,12,12,2)+E(60,128,40,9)+waves(128,24,96,2)+P('M82 108Q94 112 100 124')+P('M104 70Q110 56 108 46');},
+    /* 18 Moon */ function(){return C(60,32,16)+moon(54,32,10)+rays(60,32,19,26,16)+Rc(14,70,12,34)+P('M12 70V64H28V70')+Rc(94,70,12,34)+P('M92 70V64H108V70')+P('M60 148Q36 130 56 114Q80 100 60 86Q48 78 60 70')+E(24,122,10,5)+C(34,116,3.4)+Ln(18,127,17,134)+Ln(28,127,28,134)+E(96,122,10,5)+C(86,116,3.4)+Ln(92,127,92,134)+Ln(102,127,102,134)+waves(140,40,80,2)+C(60,134,4)+Ln(54,132,48,128)+Ln(66,132,72,128);},
+    /* 19 Sun */ function(){return sun(60,30,15,16)+C(56,28,0.01)+P('M52 34Q60 40 68 34')+dot(54,28,1.3)+dot(66,28,1.3)+Ln(0,86,120,86)+Ln(8,86,8,70)+C(8,66,5)+Ln(28,86,28,72)+C(28,68,5)+Ln(92,86,92,72)+C(92,68,5)+Ln(112,86,112,70)+C(112,66,5)+E(58,108,26,12)+P('M80 100Q92 86 90 74L100 78Q100 94 88 110')+Ln(38,116,36,138)+Ln(50,118,50,138)+Ln(68,118,70,138)+Ln(78,114,82,136)+P('M34 100Q22 108 26 124')+C(58,80,5)+P('M58 85L56 100')+Ln(58,88,40,76)+Ln(58,88,76,76)+Ln(40,76,40,60)+P('M40 60H56V70H40');},
+    /* 20 Judgement */ function(){return cloud(10,34,1.1)+cloud(78,40,1.1)+wing(60,36,-1,1)+wing(60,36,1,1)+C(60,34,6)+P('M60 40L52 62H68Z')+P('M64 46L84 28L90 22L94 34L88 34L68 52')+Ln(48,46,48,76)+P('M48 46H36V56H48')+Ln(36,46,36,50)+Rc(10,112,24,14)+C(22,98,5)+Ln(22,103,22,112)+Ln(22,106,12,92)+Ln(22,106,32,92)+Rc(48,118,24,14)+C(60,104,5)+Ln(60,109,60,118)+Ln(60,112,50,98)+Ln(60,112,70,98)+Rc(86,112,24,14)+C(98,98,5)+Ln(98,103,98,112)+Ln(98,106,88,92)+Ln(98,106,108,92)+mount('M0 146 L22 132 L44 146 L70 134 L96 146 L120 134');},
+    /* 21 World */ function(){return E(60,76,36,52)+E(60,76,31,47)+P('M52 126L60 134L68 126')+P('M60 22Q52 16 46 22M60 22Q68 16 74 22')+C(60,50,6)+P('M60 56L54 82L66 98')+Ln(54,66,40,62)+Ln(66,66,80,60)+P('M54 82L46 100')+P('M80 60Q92 54 88 68')+C(12,14,6)+P('M6 14q-4 -4 -2 -8M18 14q4 -4 2 -8')+C(108,14,6)+P('M102 14q-8 -4 -6 -10M114 14q8 -4 6 -10')+C(12,138,6)+Ln(6,134,2,130)+Ln(18,134,22,130)+C(108,138,6)+P('M102 134q-4 -6 -2 -8M114 134q4 -6 2 -8');}
+  ];
+
+  var PIPS={
+    2:[[60,38],[60,112]],
+    3:[[60,30],[60,75],[60,120]],
+    4:[[40,40],[80,40],[40,110],[80,110]],
+    5:[[40,40],[80,40],[60,75],[40,110],[80,110]],
+    6:[[40,32],[80,32],[40,75],[80,75],[40,118],[80,118]],
+    7:[[40,32],[80,32],[60,53],[40,75],[80,75],[40,118],[80,118]],
+    8:[[40,32],[80,32],[60,53],[40,75],[80,75],[60,97],[40,118],[80,118]],
+    9:[[40,28],[80,28],[40,59],[80,59],[60,75],[40,90],[80,90],[40,121],[80,121]],
+    10:[[40,28],[80,28],[60,43],[40,59],[80,59],[40,90],[80,90],[60,106],[40,121],[80,121]]
+  };
+  function emblemShort(s,k){return emb(s,60,75,k);}
+  function ace(s){return C(60,75,44)+C(60,75,40)+emb(s,60,75,1.5)+star(60,22,3,5,0.45)+star(60,128,3,5,0.45)+star(14,75,3,5,0.45)+star(106,75,3,5,0.45)+(s===2?'':'')+cloud(8,142,0.7)+cloud(84,142,0.7);}
+  function pips(s,n){var out='',a=PIPS[n]||[],k=n>=9?0.62:(n>=7?0.68:0.78),i;out+=P('M18 12H102V138H18Z','');for(i=0;i<a.length;i++){var flip=(s===0&&a[i][1]>75&&n!==2&&n!==3&&false);out+=emb(s,a[i][0],a[i][1],k);}return out;}
+  function pageArt(s){return bg(s)+C(60,38,8)+P('M50 36Q60 22 70 36Z')+Ln(68,30,78,22)+P('M60 47L46 108H74Z')+Ln(52,78,68,78)+Ln(54,108,54,128)+Ln(66,108,66,128)+Ln(66,58,82,50)+emb(s,88,38,0.9);}
+  function knightArt(s){return bg(s)+E(54,98,28,14)+P('M76 90Q90 74 92 62L104 66Q102 84 90 100')+P('M92 62L112 70L108 78L100 74')+C(98,66,0.01)+Ln(86,70,80,80)+Ln(34,110,32,134)+Ln(46,112,46,134)+Ln(66,112,68,134)+Ln(78,108,84,132)+P('M26 94Q14 100 18 120')+C(54,56,6)+P('M48 54Q54 44 60 54')+Ln(54,48,48,40)+P('M50 62L48 86H62L60 62Z')+Ln(60,68,82,58)+emb(s,90,46,0.8);}
+  function queenArt(s){return bg(s)+P('M30 118V32Q30 14 60 14Q90 14 90 32V118')+P('M36 118V34Q36 20 60 20Q84 20 84 34V118')+crown(60,32,18)+C(60,41,7)+P('M60 48L40 114H80Z')+Ln(70,62,86,58)+emb(s,92,46,0.8)+Ln(50,78,70,78)+Ln(32,118,88,118);}
+  function kingArt(s){return bg(s)+P('M28 118V16H92V118')+P('M34 118V22H86V118')+crown(60,30,20)+C(60,39,7)+P('M54 44Q60 58 66 44')+P('M60 50L38 114H82Z')+P('M44 72Q60 82 76 72')+Ln(76,60,92,64)+Ln(92,50,92,108)+emb(s,92,42,0.7)+Ln(28,118,92,118);}
+  function artFor(c){
+    var inner;
+    if(c.major!==undefined) inner=MAJOR_ART[c.major]();
+    else if(c.rank===0) inner=ace(c.suit);
+    else if(c.rank<=9) inner=pips(c.suit,c.rank+1);
+    else if(c.rank===10) inner=pageArt(c.suit);
+    else if(c.rank===11) inner=knightArt(c.suit);
+    else if(c.rank===12) inner=queenArt(c.suit);
+    else inner=kingArt(c.suit);
+    return '<svg viewBox="0 0 120 150" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+inner+'</g></svg>';
+  }
+
+  function faceInner(h){var c=h.card; return '<div class="content"><div class="num">'+esc(c.num)+'</div><div class="art" style="color:'+(h.rev?'var(--teal)':'var(--gold)')+'">'+artFor(c)+'</div><div class="name">'+esc(c.name)+'</div></div>';}
+  var $=function(id){return document.getElementById(id)};
+  var state={count:3, rev:true, pos:true, hand:[]};
+  try{
+    var saved=JSON.parse(localStorage.getItem('tarikKartu')||'null');
+    if(saved){ if(saved.count>=1&&saved.count<=12) state.count=saved.count; if(typeof saved.rev==='boolean') state.rev=saved.rev; if(typeof saved.pos==='boolean') state.pos=saved.pos; }
+  }catch(e){}
+  function save(){ try{ localStorage.setItem('tarikKartu', JSON.stringify({count:state.count,rev:state.rev,pos:state.pos})); }catch(e){} }
+
+  function rnd(n){ // uniform integer in [0,n)
+    var a=new Uint32Array(1), lim=Math.floor(4294967296/n)*n;
+    do{ crypto.getRandomValues(a); }while(a[0]>=lim);
+    return a[0]%n;
+  }
+  function pick(n,allowRev){
+    var idx=DECK.map(function(_,k){return k}), k, j, t;
+    for(k=idx.length-1;k>0;k--){ j=rnd(k+1); t=idx[k]; idx[k]=idx[j]; idx[j]=t; }
+    return idx.slice(0,n).map(function(ix){ return {card:DECK[ix], rev: allowRev ? rnd(2)===1 : false, flipped:false}; });
+  }
+  function labels(n){
+    if(!state.pos) return null;
+    if(n===3) return ['Situasi','Tantangan','Saran'];
+    if(n===1) return ['Kartu hari ini'];
+    var out=[]; for(var k=1;k<=n;k++) out.push('Kartu '+k); return out;
+  }
+  function esc(t){ return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}); }
+
+  function renderControls(){
+    $('count').textContent=state.count;
+    $('minus').disabled=state.count<=1; $('plus').disabled=state.count>=12;
+    $('draw').textContent='Acak dan tarik '+state.count+' kartu';
+    $('swRev').setAttribute('aria-checked',state.rev); $('swPos').setAttribute('aria-checked',state.pos);
+    Array.prototype.forEach.call($('chips').children,function(b){ b.setAttribute('aria-pressed', String(Number(b.dataset.n)===state.count)); });
+  }
+  function renderSpread(animate){
+    var L=labels(state.hand.length), html='';
+    state.hand.forEach(function(h,k){
+      var c=h.card, aria=(L?L[k]+': ':'')+'kartu ke-'+(k+1)+(h.flipped?', '+c.name+(h.rev?', terbalik':', tegak'):', tertutup. Ketuk untuk membuka');
+      html+='<div class="slot"><div class="pos">'+(L?esc(L[k]):'')+'</div>'+
+        '<button type="button" class="card'+(h.flipped?' flipped':'')+(animate?' deal':'')+'" data-k="'+k+'" aria-label="'+esc(aria)+'"'+(animate?' style="animation-delay:'+(k*70)+'ms"':'')+'>'+
+        '<div class="inner"><div class="back">'+STAR.replace('<svg','<svg style="color:var(--gold)"')+'</div>'+
+        '<div class="face'+(h.rev?' rev':'')+'">'+faceInner(h)+'</div></div></button>'+
+        '<div class="state'+(h.flipped?(h.rev?' rev':' up'):'')+'">'+(h.flipped?(h.rev?'Terbalik':'Tegak'):'Ketuk untuk membuka')+'</div></div>';
+    });
+    $('spread').innerHTML=html;
+  }
+
+  function theme(h){
+    var c=h.card;
+    var KW2=['awal baru','pilihan','pertumbuhan','stabilitas','konflik','pemulihan','evaluasi','usaha dan penguasaan','hampir selesai','penyelesaian','belajar dan kabar baru','gerak mengejar tujuan','kematangan batin','kepemimpinan'];
+    if(c.major!==undefined) return h.rev ? c.kw+' yang sedang tersendat, ditandai '+c.rkw : c.kw;
+    return KW2[c.rank]+' dalam urusan '+c.area+(h.rev?' yang masih tersendat':'');
+  }
+  function summary(){
+    var H=state.hand, n=H.length, L=labels(n), txt, k, T=H.map(theme);
+    if(n===1){
+      txt='Hari ini, kartu mengajak Anda memperhatikan tema '+T[0]+'.';
+    } else if(n===3 && L && L[0]==='Situasi'){
+      txt='Saat ini, situasi Anda diwarnai tema '+T[0]+'. Tantangannya ada pada '+T[1]+'. Karena itu, kartu menyarankan Anda memperhatikan '+T[2]+'.';
+    } else {
+      txt='Bacaan ini bermula dari tema '+T[0]+(n>2?', berlanjut ke '+T.slice(1,n-1).join(', lalu '):'')+', dan bermuara pada '+T[n-1]+'.';
+    }
+    var notes=[], major=0, rev=0, cnt=[0,0,0,0], minor=0;
+    H.forEach(function(h){ if(h.card.major!==undefined) major++; else {cnt[h.card.suit]++; minor++;} if(h.rev) rev++; });
+    if(n>=3&&major*2>=n) notes.push('Karena banyak kartu Major yang muncul, topik ini terasa besar dan layak diberi perhatian.');
+    for(k=0;k<4;k++) if(minor>=3&&cnt[k]*2>=minor) notes.push('Kartu '+SUITS[k][0]+' yang dominan menunjukkan perhatian Anda sedang tertuju pada '+SUITS[k][1]+'.');
+    if(n>=3&&rev*2>n) notes.push('Banyaknya kartu terbalik bukan pertanda buruk. Ini lebih terbaca sebagai masa yang penuh hambatan, atau saat yang baik untuk berefleksi.');
+    return txt+(notes.length?' '+notes.join(' '):'')+' Cobalah menutupnya dengan satu langkah kecil yang bisa Anda lakukan hari ini.';
+  }
+  function renderReading(){
+    var L=labels(state.hand.length), items='', any=false;
+    state.hand.forEach(function(h,k){
+      if(!h.flipped) return; any=true;
+      var c=h.card;
+      items+='<li><div class="top">'+(L?'<span class="pos">'+esc(L[k])+'</span>':'<span class="pos">Kartu '+(k+1)+'</span>')+
+        '<span class="nm">'+esc(c.name)+'</span><span class="badge'+(h.rev?' rev':'')+'">'+(h.rev?'Terbalik':'Tegak')+'</span></div>'+
+        '<p>'+esc(c.kind)+'. Tema: '+esc(c.meaning)+'.</p>'+
+        (h.rev?'<p class="hint">'+(c.rev?'Terbalik: '+esc(c.rev)+'. ':'Terbalik: tema ini tertahan, berlebihan, kurang, atau sedang dihindari. ')+'Tanyakan: energi apa yang tertahan?</p>':'')+'</li>';
+    });
+    var allOpen=state.hand.length>0&&state.hand.every(function(h){return h.flipped});
+    $('reading').innerHTML = any ? '<ol>'+items+'</ol>'+(allOpen?'<div class="sum"><h3>Kalimat kesimpulan</h3><p>'+esc(summary())+'</p></div><p class="tip">Ini draf awal. Ubah dengan kata-kata Anda sendiri agar terasa seperti suara Anda.</p>':'') : '<p class="empty">Ketuk kartu untuk membukanya. Arti singkat tiap kartu muncul di sini.</p>';
+  }
+  var shuffling=false;
+  function shuffleMarkup(){
+    var h='',i,sg;
+    for(i=0;i<9;i++){ sg=(i%2===0)?1:-1; h+='<div class="sc" style="--s:'+(sg*(0.45+0.07*i)).toFixed(2)+'; --d:'+(-i*0.09).toFixed(2)+'s; z-index:'+i+'">'+STAR+'</div>'; }
+    return '<div class="shuffle" role="status" aria-label="Mengacak kartu">'+h+'<div class="shuffle-msg">Mengacak kartu<i>...</i></div></div>';
+  }
+  function draw(){
+    if(shuffling) return; shuffling=true;
+    var btn=$('draw'); btn.disabled=true; btn.textContent='Mengacak...';
+    $('openAll').disabled=true; $('copy').disabled=true; $('copyWrap').hidden=true;
+    $('spread').innerHTML=shuffleMarkup();
+    $('reading').innerHTML='<p class="empty">Kartu sedang diacak. Tenangkan pikiran dan fokus pada pertanyaan Anda.</p>';
+    setTimeout(function(){
+      state.hand=pick(state.count,state.rev);
+      shuffling=false; btn.disabled=false; $('openAll').disabled=false; $('copy').disabled=false;
+      renderControls(); renderSpread(true); renderReading();
+    },3000);
+  }
+  function flip(k){
+    var h=state.hand[k]; if(!h) return; h.flipped=!h.flipped;
+    var btn=$('spread').querySelector('.card[data-k="'+k+'"]'); if(!btn){return}
+    btn.classList.toggle('flipped',h.flipped); btn.classList.remove('deal');
+    var st=btn.parentNode.querySelector('.state');
+    st.className='state'+(h.flipped?(h.rev?' rev':' up'):''); st.textContent=h.flipped?(h.rev?'Terbalik':'Tegak'):'Ketuk untuk membuka';
+    var L=labels(state.hand.length);
+    btn.setAttribute('aria-label',(L?L[k]+': ':'')+'kartu ke-'+(k+1)+(h.flipped?', '+h.card.name+(h.rev?', terbalik':', tegak'):', tertutup. Ketuk untuk membuka'));
+    renderReading();
+  }
+  function toast(msg){
+    var t=$('toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(function(){t.hidden=true},1800);
+  }
+  function resultText(){
+    var L=labels(state.hand.length);
+    var t=state.hand.map(function(h,k){
+      return (k+1)+'. '+(L?L[k]+': ':'')+h.card.name+' ('+(h.rev?'terbalik':'tegak')+') - '+h.card.meaning;
+    }).join('\n');
+    return state.hand.every(function(h){return h.flipped}) ? t+'\n\nKesimpulan: '+summary() : t;
+  }
+
+  // chips
+  [1,3,5,7,10].forEach(function(n){
+    var b=document.createElement('button'); b.type='button'; b.className='chip'; b.dataset.n=n; b.textContent=n; b.setAttribute('aria-label',n+' kartu');
+    b.addEventListener('click',function(){ state.count=n; save(); renderControls(); });
+    $('chips').appendChild(b);
+  });
+  $('minus').addEventListener('click',function(){ if(state.count>1){state.count--; save(); renderControls();} });
+  $('plus').addEventListener('click',function(){ if(state.count<12){state.count++; save(); renderControls();} });
+  $('swRev').addEventListener('click',function(){ state.rev=!state.rev; save(); renderControls(); });
+  $('swPos').addEventListener('click',function(){ state.pos=!state.pos; save(); renderControls(); if(state.hand.length){renderSpread(false); renderReading();} });
+  $('draw').addEventListener('click',draw);
+  $('spread').addEventListener('click',function(e){ var b=e.target.closest('.card'); if(!b) return; var k=Number(b.dataset.k); if(state.hand[k].flipped) openZoom(k); else flip(k); });
+  var lastFocus=null;
+  function openZoom(k){
+    var h=state.hand[k], c=h.card, L=labels(state.hand.length); lastFocus=document.activeElement;
+    $('zbody').innerHTML='<div class="zoomcard"><div class="face'+(h.rev?' rev':'')+'">'+faceInner(h)+'</div></div><div class="ztext">'+
+      '<span class="badge'+(h.rev?' rev':'')+'">'+(h.rev?'Terbalik':'Tegak')+'</span>'+(L?'<div class="sub">'+esc(L[k])+'</div>':'')+
+      '<p>Tema: '+esc(c.meaning)+'.</p>'+(h.rev?'<p style="color:var(--teal)">'+(c.rev?'Terbalik: '+esc(c.rev)+'. ':'')+'Tanyakan: energi apa yang tertahan?</p>':'')+'</div>';
+    $('zoom').hidden=false; $('zclose').focus();
+  }
+  function closeZoom(){ $('zoom').hidden=true; if(lastFocus&&lastFocus.focus) lastFocus.focus(); }
+  $('zclose').addEventListener('click',closeZoom);
+  $('zoom').addEventListener('click',function(e){ if(e.target===$('zoom')) closeZoom(); });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!$('zoom').hidden) closeZoom(); });
+  $('openAll').addEventListener('click',function(){
+    var allOpen=state.hand.every(function(h){return h.flipped});
+    state.hand.forEach(function(h,k){ if(allOpen===h.flipped) setTimeout(function(){flip(k)}, k*120); });
+  });
+  $('copy').addEventListener('click',function(){
+    var txt=resultText(), box=$('copyBox');
+    function manual(){ box.value=txt; $('copyWrap').hidden=false; box.focus(); box.select(); }
+    try{
+      navigator.clipboard.writeText(txt).then(function(){ toast('Hasil tersalin'); },manual);
+    }catch(e){ manual(); }
+  });
+
+  renderControls(); state.hand=pick(state.count,state.rev); renderSpread(true); renderReading();
+})();
+</script>
+
+</body></html>
